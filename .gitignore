@@ -1,0 +1,100 @@
+# =========================
+
+# Build Artifacts
+
+# =========================
+
+*.o
+*.ko
+*.mod
+*.mod.c
+*.symvers
+*.order
+*.cmd
+*.a
+*.out
+
+# Kernel module build dirs
+
+Module.symvers
+modules.order
+*.mod.o
+
+# =========================
+
+# Executables
+
+# =========================
+
+engine
+stress
+memory_hog
+cpu_hog
+io_pulse
+
+# =========================
+
+# Logs
+
+# =========================
+
+logs/
+*.log
+
+# =========================
+
+# Temporary Files
+
+# =========================
+
+*.swp
+*.swo
+*~
+*.tmp
+
+# =========================
+
+# OS / Editor Files
+
+# =========================
+
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# =========================
+
+# Socket Files
+
+# =========================
+
+/tmp/engine.sock
+
+# =========================
+
+# Root Filesystem (Large / Generated)
+
+# =========================
+
+rootfs/
+rootfs-*/
+*.tar.gz
+
+# =========================
+
+# Environment / Scripts Output
+
+# =========================
+
+*.pid
+*.sock
+
+# =========================
+
+# Debug / Core Dumps
+
+# =========================
+
+core
+core.*
