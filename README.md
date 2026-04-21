@@ -37,26 +37,25 @@ It demonstrates key OS concepts:
 
 ## 🏗️ System Architecture
 
-```
+```mermaid
 flowchart TD
-    A[User Commands<br>engine start / ps / logs] --> B[Engine (User Space)]
-    B --> C[Supervisor Process]
-    C --> D[UNIX Socket<br>/tmp/engine.sock]
-    C --> E[Container Creation<br>clone + namespaces]
-    E --> F[Container Process<br>/stress]
-    F --> G[Pipe (stdout/stderr)]
-    G --> H[Producer Thread]
-    H --> I[Shared Buffer]
-    I --> J[Consumer Thread]
-    J --> K[logs/container.log]
-    B --> L[Kernel Module]
-    L --> M[/dev/container_monitor]
-    E --> N[IOCTL Call]
+    A["User Commands\nengine start / ps / logs"] --> B["Engine (User Space)"]
+    B --> C["Supervisor Process"]
+    C --> D["UNIX Socket\n/tmp/engine.sock"]
+    C --> E["Container Creation\nclone + namespaces"]
+    E --> F["Container Process\n/stress"]
+    F --> G["Pipe (stdout/stderr)"]
+    G --> H["Producer Thread"]
+    H --> I["Shared Buffer"]
+    I --> J["Consumer Thread"]
+    J --> K["logs/container.log"]
+    B --> L["Kernel Module"]
+    L --> M["/dev/container_monitor"]
+    E --> N["IOCTL Call"]
     N --> L
-    L --> O[Memory Monitoring]
-    O --> P[dmesg Output]
+    L --> O["Memory Monitoring"]
+    O --> P["dmesg Output"]
 ```
-
 ### 🔍 Explanation
 
 * The **engine** acts as a client/server system.
