@@ -37,7 +37,7 @@ It demonstrates key OS concepts:
 
 ## 🏗️ System Architecture
 
-```mermaid
+```
 flowchart TD
     A[User Commands<br>engine start / ps / logs] --> B[Engine (User Space)]
     B --> C[Supervisor Process]
