@@ -1,158 +1,342 @@
-# OS JACKFRUIT PROBLEM 
+# 🐳 Mini Container Runtime with Kernel-Level Monitoring
 
-##  Student Details
- 
-  * Teammate 1:- <br>
-      Name: ROHITH G S  
-      SRN: PES2UG24AM138
-  * Teammate 2:- <br>
-    Name: PAVAN KISHOR M <br>
-    SRN: PES2UG24AM111
----
+## 👨‍🎓 Student Details
 
-#  Project Overview
-
-This project implements a **mini container runtime system** in Linux along with a **kernel monitoring module**.  
-It demonstrates core operating system concepts such as process isolation, inter-process communication, logging, and kernel-user space interaction.
+* **Teammate 1:**
+  * Name: ROHITH G S
+  * SRN: PES2UG24AM138
+* **Teammate 2:**
+  * Name: PAVAN KISHOR M
+  * SRN: PES2UG24AM111
 
 ---
 
-#  Features
+## 📌 Overview
 
-- Container creation using `clone()`
-- PID, UTS, and Mount namespace isolation
-- Filesystem isolation using `chroot()`
-- Logging system using pipes and threads
-- Producer–Consumer synchronization
-- Kernel module for process monitoring
-- Communication via `ioctl()`
+This project implements a lightweight **container runtime in C** using Linux system calls and a **kernel module** for monitoring container memory usage.
 
----
+It demonstrates key OS concepts:
 
-#  System Architecture
-
-Container → Pipe → Logging System → Log File  
-              ↓  
-            Kernel Module (via ioctl)
+* Process isolation using namespaces
+* Inter-process communication (IPC)
+* Producer–Consumer synchronization
+* User–kernel communication via `ioctl`
+* Resource monitoring and enforcement
 
 ---
 
-#  Build & Run Instructions
+## 🎯 Objectives
 
-## 1. Compile Kernel Module
+* Build a mini container runtime using `clone()`
+* Implement logging using Producer–Consumer model
+* Enable communication via UNIX domain sockets
+* Develop a kernel module for memory monitoring
+* Enforce **soft and hard memory limits**
+
+---
+
+## 🏗️ System Architecture
+
+```mermaid
+flowchart TD
+    A[User Commands<br>engine start / ps / logs] --> B[Engine (User Space)]
+    B --> C[Supervisor Process]
+    C --> D[UNIX Socket<br>/tmp/engine.sock]
+    C --> E[Container Creation<br>clone + namespaces]
+    E --> F[Container Process<br>/stress]
+    F --> G[Pipe (stdout/stderr)]
+    G --> H[Producer Thread]
+    H --> I[Shared Buffer]
+    I --> J[Consumer Thread]
+    J --> K[logs/container.log]
+    B --> L[Kernel Module]
+    L --> M[/dev/container_monitor]
+    E --> N[IOCTL Call]
+    N --> L
+    L --> O[Memory Monitoring]
+    O --> P[dmesg Output]
+```
+
+### 🔍 Explanation
+
+* The **engine** acts as a client/server system.
+* The **supervisor** manages container lifecycle.
+* Output flows via **pipe → producer → buffer → consumer → logs**.
+* Kernel module monitors memory and logs to `dmesg`.
+
+---
+
+## 🔄 Workflow Diagram
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Engine
+    participant Supervisor
+    participant Container
+    participant Kernel
+
+    User->>Engine: ./engine supervisor
+    Engine->>Supervisor: Start socket server
+
+    User->>Engine: ./engine start
+    Engine->>Supervisor: Send start command
+
+    Supervisor->>Container: clone() + namespaces
+    Container->>Container: Run /stress
+
+    Container->>Engine: Output via pipe
+    Engine->>Engine: Producer thread
+    Engine->>Engine: Consumer writes logs
+
+    Supervisor->>Kernel: ioctl(PID)
+    Kernel->>Kernel: Monitor memory
+
+    Kernel-->>User: dmesg logs
+    Kernel-->>Container: Kill if HARD limit exceeded
+```
+
+---
+
+## 🧠 Core Concept Diagram
+
+```mermaid
+flowchart LR
+    A[Container Process] --> B[Pipe]
+    B --> C[Producer]
+    C --> D[Buffer]
+    D --> E[Consumer]
+    E --> F[Log File]
+
+    A --> G[Kernel Module]
+    G --> H[Memory Check]
+    H --> I[Soft Limit Warning]
+    H --> J[Hard Limit Kill]
+```
+
+---
+
+## ⚙️ Features
+
+### 🔹 Container Runtime
+
+* Uses `clone()` with:
+  * `CLONE_NEWPID`
+  * `CLONE_NEWUTS`
+  * `CLONE_NEWNS`
+* Filesystem isolation via `chroot()`
+* Executes `/stress` inside container
+
+---
+
+### 🔹 Supervisor (IPC)
+
+* UNIX socket: `/tmp/engine.sock`
+* Commands:
+  * `start` → Launch container
+  * `ps` → List containers
+  * `stop <id>` → Stop container
+  * `logs` → View logs
+
+---
+
+### 🔹 Logging System
+
+* Pipe-based output capture
+* Producer–Consumer model:
+  * Mutex
+  * Condition variables
+
+Output stored in:
+```
+logs/container.log
+```
+
+---
+
+### 🔹 Kernel Module Monitoring
+
+* Device: `/dev/container_monitor`
+* Uses `ioctl` for PID registration
+* Periodically checks memory
+
+#### 🚨 Limits
+
+* Soft Limit → Warning
+* Hard Limit → Process killed
+
+---
+
+## 📁 Project Structure
+
+```
+OS-Jackfruit/
+│
+├── engine.c
+├── monitor.c
+├── stress.c
+├── Makefile
+├── logs/
+├── rootfs/
+├── README.md
+└── .gitignore
+```
+
+---
+
+## 🛠️ Requirements
+
+* Ubuntu/Linux (VM recommended)
+* GCC
+* Make
+
+Install dependencies:
 ```bash
+sudo apt install build-essential linux-headers-$(uname -r)
+```
+
+---
+
+## ⚙️ Build Instructions
+
+```bash
+make clean
 make
 ```
 
-## 2. Load Kernel Module
+---
+
+## 🚀 Execution Steps
+
+### 1. Load Kernel Module
+
 ```bash
 sudo insmod monitor.ko
 ```
 
-## 3. Verify Device
+Verify:
 ```bash
-ls /dev/container_monitor
-```
-
-## 4. Compile Engine
-```bash
-gcc engine.c -o engine -lpthread
-```
-
-## 5. Run Program
-```bash
-sudo ./engine
+ls -l /dev/container_monitor
 ```
 
 ---
 
-#  Usage
+### 2. Start Supervisor
 
 ```bash
-run   # start container
-ps    # list containers
-exit  # exit program
+sudo ./engine supervisor
 ```
 
 ---
 
-#  Demo Explanation
+### 3. Start Container
 
-- Containers are created using `clone()` with namespaces  
-- Output from containers is redirected via pipes  
-- Logging system captures output and stores it in `logs/container.log`  
-- Kernel module receives container PID using `ioctl()`  
-
----
-
-#  Screenshots
-
-##  Figure 1: Kernel Module Build and Device Creation
-![Figure 1](images/fig1.png)
-
-##  Figure 2: Container Execution and Logging
-![Figure 2](images/fig2.png)
-
-##  Figure 3: Kernel Receiving Process ID
-![Figure 3](images/fig3.png)
-
-##  Figure 4: Multiple Container Execution
-![Figure 4](images/fig4.png)
+```bash
+sudo ./engine start
+```
 
 ---
 
-#  Engineering Analysis
+### 4. List Containers
 
-##  1. Isolation Mechanisms
-- PID namespace ensures each container sees its own process IDs  
-- UTS namespace isolates hostname  
-- Mount namespace isolates filesystem  
-- `chroot()` restricts container root directory  
+```bash
+sudo ./engine ps
+```
 
 ---
 
-##  2. Process Lifecycle
-- Containers are created using `clone()`  
-- Parent process tracks container metadata  
-- `SIGCHLD` handler prevents zombie processes  
+### 5. View Logs
+
+```bash
+cat logs/container.log
+```
 
 ---
 
-##  3. Logging System
-- Pipe used for communication between container and host  
-- Producer thread reads container output  
-- Consumer thread writes to log file  
-- Mutex and condition variables ensure synchronization  
+### 6. Kernel Monitoring Output
+
+```bash
+sudo dmesg | grep Monitor
+```
 
 ---
 
-## 4. Kernel Integration
-- Kernel module creates `/dev/container_monitor`  
-- User-space program sends PID using `ioctl()`  
-- Kernel logs received PID using `printk()`  
+## 📊 Sample Outputs
+
+### Logs
+
+```
+HELLO
+Stress started...
+Allocating memory...
+```
 
 ---
 
-#  Design Decisions
+### Kernel Logs
 
-| Component | Choice | Reason |
-|----------|-------|-------|
-| clone() | Used | Enables namespace-based isolation |
-| Pipes | Used | Simple IPC mechanism |
-| Threads | Used | Efficient logging |
-| Kernel module | Used | Enables low-level monitoring |
-
----
-
-#  Results
-
-- Containers executed successfully  
-- Logging system captured outputs correctly  
-- Kernel module received PIDs successfully  
-- System remained stable and responsive  
+```
+[Monitor] Registered PID: 23049
+[Monitor] PID 23049 memory: 32055296 bytes
+[Monitor] PID 23049 exceeded SOFT limit
+[Monitor] PID 23049 exceeded HARD limit → killing
+```
 
 ---
 
-# Conclusion
+## 📸 Screenshots (Submission Order)
 
-This project successfully demonstrates a simplified container runtime with integrated logging and kernel-level monitoring, showcasing key operating system concepts in practice.
+### 1. Compilation (`make`)
+![Compilation](images/1.png)
+
+### 2. Kernel module loading
+![Kernel module loading](images/2.png)
+
+### 3. Supervisor running
+![Supervisor running](images/3.png)
+
+### 4. Container start
+![Container start](images/4.png)
+
+### 5. Process list (`ps`)
+![Process list](images/5.png)
+
+### 6. Logs (`container.log`)
+![Logs](images/6.png)
+
+### 7. Kernel monitoring (`dmesg`)
+![Kernel monitoring (7-8)](images/7,8.png)
+
+*(Additional log output)*
+![Additional Logs](images/9.png)
+
+---
+
+## 🧠 Concepts Used
+
+* Linux Namespaces
+* Process Isolation
+* IPC (UNIX sockets, pipes)
+* Producer–Consumer Problem
+* Kernel Programming
+* Memory Management
+
+---
+
+## ⚠️ Notes
+
+* Use `sudo` for privileged operations
+* Ensure `rootfs/` contains:
+  * `/bin/sh`
+  * `/stress`
+
+If `dmesg` is restricted:
+```bash
+sudo dmesg | tail
+```
+
+---
+
+## ✅ Conclusion
+
+This project successfully demonstrates a mini container runtime integrated with kernel-level monitoring and enforcement, combining user-space and kernel-space programming into a complete system.
